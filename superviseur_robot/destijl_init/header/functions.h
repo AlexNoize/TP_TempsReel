@@ -39,21 +39,25 @@ extern RT_TASK th_openComRobot;
 extern RT_TASK th_startRobot;
 extern RT_TASK th_move;
 extern RT_TASK th_gestionBatterie;
+extern RT_TASK th_gestionWatchDog;
 
 extern RT_MUTEX mutex_robotStarted;
 extern RT_MUTEX mutex_move;
 extern RT_MUTEX mutex_cpt_err;
+extern RT_MUTEX mutex_WD;
 
 extern RT_SEM sem_barrier;
 extern RT_SEM sem_openComRobot;
 extern RT_SEM sem_serverOk;
 extern RT_SEM sem_startRobot;
+extern RT_SEM sem_withWD;
 
 extern RT_QUEUE q_messageToMon;
 
 extern int etatCommMoniteur;
 extern int robotStarted;
 extern int cpt_err;
+extern int WD;
 extern char move;
 
 extern int MSG_QUEUE_SIZE;
@@ -73,6 +77,6 @@ void f_openComRobot(void * arg);
 void f_move(void *arg);
 void f_startRobot(void *arg);
 void f_gestionBatterie(void *arg);
-
+void f_gestionWatchDog(void *arg);
 #endif /* FUNCTIONS_H */
 

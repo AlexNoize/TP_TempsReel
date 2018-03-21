@@ -164,7 +164,15 @@ void f_startRobot(void * arg) {
 #ifdef _WITH_TRACE_
         printf("%s : sem_startRobot arrived => Start robot\n", info.name);
 #endif
-        err = send_command_to_robot(DMB_START_WITHOUT_WD);
+        
+        rt_mutex_acquire(&mutex_WD,TM_INFINITE);
+        if( WD == 1 ) { // WatchDog ON
+            err = send_command_to_robot(DMB_START_WITH_WD);
+        }
+        else {
+            err = send_command_to_robot(DMB_START_WITHOUT_WD);
+        }
+
         if (err == 0) {
 #ifdef _WITH_TRACE_
             printf("%s : the robot is started\n", info.name);
@@ -175,11 +183,14 @@ void f_startRobot(void * arg) {
             MessageToMon msg;
             set_msgToMon_header(&msg, HEADER_STM_ACK);
             write_in_queue(&q_messageToMon, msg);
+            if (WD == 1)
+                rt_sem_v(&sem_withWD);
         } else {
             MessageToMon msg;
             set_msgToMon_header(&msg, HEADER_STM_NO_ACK);
             write_in_queue(&q_messageToMon, msg);
         }
+        rt_mutex_release(&mutex_WD);
     }
 }
 
@@ -236,7 +247,7 @@ void f_gestionBatterie(void *arg) {
         rt_task_wait_period(NULL);
 #ifdef _WITH_TRACE_
         printf("%s: Periodic activation\n", info.name);
-        printf("%s: move equals %c\n", info.name, move);
+
 #endif
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
@@ -247,7 +258,7 @@ void f_gestionBatterie(void *arg) {
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
             if (bat >= 0 ){ //bat = (DMB_BAT_LOW||DMB_BAT_MED||DMB_BAT_HIGH)
                 MessageToMon msg;
-                // bat = 0; On teste en forçant.
+                // bat = 0; On teste l'affichage en forçant.
                 bat += 48;
                 set_msgToMon_header(&msg,HEADER_STM_BAT);
                 set_msgToMon_data(&msg,&bat);
@@ -256,6 +267,7 @@ void f_gestionBatterie(void *arg) {
             }
             else {
                 cpt_err++;
+                //printf("Cpt erreur = %d\n",cpt_err);
                 if (cpt_err == 3) {
                     robotStarted = 0;
                     MessageToMon msg;
@@ -264,7 +276,7 @@ void f_gestionBatterie(void *arg) {
                     cpt_err = 0;
                 }
             }
-            
+            rt_mutex_release(&mutex_cpt_err);
 #ifdef _WITH_TRACE_
             printf("%s: the battery level %c was sent\n", info.name, bat);
 #endif            
@@ -272,6 +284,67 @@ void f_gestionBatterie(void *arg) {
         rt_mutex_release(&mutex_robotStarted);
     }  
 }
+
+
+void f_gestionWatchDog(void *arg) { //Pas faite
+    /* INIT */
+    RT_TASK_INFO info;
+    rt_task_inquire(NULL, &info);
+    printf("Init %s\n", info.name);
+    rt_sem_p(&sem_barrier, TM_INFINITE);
+    
+    /* PERIODIC START */
+#ifdef _WITH_TRACE_
+    printf("%s: start period\n", info.name);
+#endif
+    rt_task_set_periodic(NULL, TM_NOW, 1000000000);
+    
+    while (1) {
+#ifdef _WITH_TRACE_
+        printf("%s: Wait period \n", info.name);
+#endif
+        rt_task_wait_period(NULL);
+#ifdef _WITH_TRACE_
+        printf("%s: Periodic activation\n", info.name);
+
+#endif
+        rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+        if (robotStarted) {
+            
+            int bat;
+            bat = send_command_to_robot(DMB_GET_VBAT);
+            
+            rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
+            if (bat >= 0 ){ //bat = (DMB_BAT_LOW||DMB_BAT_MED||DMB_BAT_HIGH)
+                MessageToMon msg;
+                // bat = 0; On teste l'affichage en forçant.
+                bat += 48;
+                set_msgToMon_header(&msg,HEADER_STM_BAT);
+                set_msgToMon_data(&msg,&bat);
+                write_in_queue(&q_messageToMon, msg);
+                cpt_err = 0;
+            }
+            else {
+                cpt_err++;
+                //printf("Cpt erreur = %d\n",cpt_err);
+                if (cpt_err == 3) {
+                    robotStarted = 0;
+                    MessageToMon msg;
+                    set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
+                    write_in_queue(&q_messageToMon,msg);
+                    cpt_err = 0;
+                }
+            }
+            rt_mutex_release(&mutex_cpt_err);
+#ifdef _WITH_TRACE_
+            printf("%s: the battery level %c was sent\n", info.name, bat);
+#endif            
+        }
+        rt_mutex_release(&mutex_robotStarted);
+    }  
+}
+
+
 void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
     void *buff;
     buff = rt_queue_alloc(&q_messageToMon, sizeof (MessageToMon));
