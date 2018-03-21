@@ -247,7 +247,7 @@ void f_gestionBatterie(void *arg) {
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
             if (bat >= 0 ){ //bat = (DMB_BAT_LOW||DMB_BAT_MED||DMB_BAT_HIGH)
                 MessageToMon msg;
-                // bat = 0;
+                // bat = 0; On teste en forçant.
                 bat += 48;
                 set_msgToMon_header(&msg,HEADER_STM_BAT);
                 set_msgToMon_data(&msg,&bat);
