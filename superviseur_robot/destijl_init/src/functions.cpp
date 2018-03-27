@@ -395,7 +395,7 @@ void ReInit(void *arg){
 #ifdef _WITH_TRACE_
 printf("%s: Wait for rst \n", info.name);
 #endif
-		rt_sem_p(&sem_serverOk, TM_INFINITE);
+		rt_sem_p(&sem_rst, TM_INFINITE);
 #ifdef _WITH_TRACE_
 printf("%s: rst on, stop nodejs and server\n", info.name);
 #endif
