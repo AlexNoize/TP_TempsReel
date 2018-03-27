@@ -225,11 +225,13 @@ void f_move(void *arg) {
             rt_mutex_release(&mutex_move);
             
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
-            if (err >= 0 ){ // Pas d'erreur 
-                
+            if (err == ROBOT_OK ){ // Pas d'erreur (ROBOT_OK) 
+                #ifdef _WITH_TRACE_
+                printf("%s: the movement %c was sent\n", info.name, move);
+                #endif         
                 cpt_err = 0;
             }
-            else {
+            else if (err == ROBOT_TIMED_OUT || err == ROBOT_UKNOWN_CMD  || err == ROBOT_ERROR || err == ROBOT_CHECKSUM ) {
                 cpt_err++;
                 #ifdef _WITH_TRACE_
                 printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
@@ -239,13 +241,12 @@ void f_move(void *arg) {
                     MessageToMon msg;
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
+                    close_communication_robot;
                     cpt_err = 0;
                 }
             }
             rt_mutex_release(&mutex_cpt_err);
-#ifdef _WITH_TRACE_
-            printf("%s: the movement %c was sent\n", info.name, move);
-#endif            
+   
         }
         rt_mutex_release(&mutex_robotStarted);
     }
@@ -287,8 +288,11 @@ void f_gestionBatterie(void *arg) {
                 set_msgToMon_data(&msg,&bat);
                 write_in_queue(&q_messageToMon, msg);
                 cpt_err = 0;
+                #ifdef _WITH_TRACE_
+                printf("%s: the battery level %c was sent\n", info.name, bat);
+                #endif
             }
-            else {
+            else if (bat == ROBOT_TIMED_OUT || bat == ROBOT_UKNOWN_CMD  || bat == ROBOT_ERROR || bat == ROBOT_CHECKSUM )  {
                 cpt_err++;
                 #ifdef _WITH_TRACE_
                 printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
@@ -298,13 +302,11 @@ void f_gestionBatterie(void *arg) {
                     MessageToMon msg;
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
+                    close_communication_robot;
                     cpt_err = 0;
                 }
             }
-            rt_mutex_release(&mutex_cpt_err);
-#ifdef _WITH_TRACE_
-            printf("%s: the battery level %c was sent\n", info.name, bat);
-#endif            
+            rt_mutex_release(&mutex_cpt_err);        
         }
         rt_mutex_release(&mutex_robotStarted);
     }  
@@ -341,11 +343,13 @@ void f_gestionWatchDog(void *arg) { //Pas faite
             err = send_command_to_robot(DMB_RELOAD_WD);
             
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
-            if (err >= 0 ){ // Pas d'erreur 
-                
+            if (err == ROBOT_OK ){ // Pas d'erreur 
+#ifdef _WITH_TRACE_
+            printf("%s: the watchdog reload order was sent\n", info.name);
+#endif     
                 cpt_err = 0;
             }
-            else {
+            else if (err == ROBOT_TIMED_OUT || err == ROBOT_UKNOWN_CMD  || err == ROBOT_ERROR || err == ROBOT_CHECKSUM )  {
                 cpt_err++;
                 #ifdef _WITH_TRACE_
                 printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
@@ -355,13 +359,12 @@ void f_gestionWatchDog(void *arg) { //Pas faite
                     MessageToMon msg;
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
+                    close_communication_robot;
                     cpt_err = 0;
                 }
             }
             rt_mutex_release(&mutex_cpt_err);
-#ifdef _WITH_TRACE_
-            printf("%s: the watchdog reload order was sent\n", info.name);
-#endif            
+       
         }
         rt_mutex_release(&mutex_robotStarted);
     }  

@@ -83,7 +83,7 @@ void startTasks(void);
  */
 void deleteTasks(void);
 
-int main(int argc, char **argv) {extern RT_MUTEX mutex_cpt_err;
+int main(int argc, char **argv) {
 
     int err;
     //Lock the memory to avoid memory swapping for this program
