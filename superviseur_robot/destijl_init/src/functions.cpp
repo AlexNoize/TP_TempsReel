@@ -405,9 +405,9 @@ printf("%s: rst on, stop nodejs and server\n", info.name);
 
 		printf(«%s: Nodejs is lost \n », info.name);
 
-		rt_mutex_acquire(&mutex_RobotStarted, TM_INFINITE);
-		RobotStarted = 0;
-		rt_mutex_release(&mutex_RobotStarted);
+		rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
+		robotStarted = 0;
+		rt_mutex_release(&mutex_robotStarted);
                 
 		rt_mutex_acquire(&mutex_Camera, TM_INFINITE);
 		Camera = 0;
