@@ -387,3 +387,29 @@ void write_in_queue(RT_QUEUE *queue, MessageToMon msg) {
     memcpy(buff, &msg, sizeof (MessageToMon));
     rt_queue_send(&q_messageToMon, buff, sizeof (MessageToMon), Q_NORMAL);
 }
+
+
+void ReInit(void *arg){
+
+	while (1) {
+#ifdef _WITH_TRACE_
+printf("%s: Wait for rst \n", info.name);
+#endif
+		rt_sem_p(&sem_serverOk, TM_INFINITE);
+#ifdef _WITH_TRACE_
+printf("%s: rst on, stop nodejs and server\n", info.name);
+#endif
+		
+		kill_nodejs();
+		close_server();
+
+		rt_mutex_acquire(&mutex_RobotStarted, TM_INFINITE);
+		RobotStarted = 0;
+		rt_mutex_release(&mutex_RobotStarted);
+                
+		rt_mutex_acquire(&mutex_Camera, TM_INFINITE);
+		Camera = 0;
+        rt_mutex_release(&mutex_Camera);
+
+	}
+}
