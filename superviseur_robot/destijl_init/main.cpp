@@ -27,6 +27,7 @@ RT_TASK th_startRobot;
 RT_TASK th_move;
 RT_TASK th_gestionBatterie;
 RT_TASK th_gestionWatchDog;
+RT_TASK th_ReInit;
 
 // Déclaration des priorités des taches
 int PRIORITY_TSERVER = 30;
@@ -37,11 +38,13 @@ int PRIORITY_TRECEIVEFROMMON = 22;
 int PRIORITY_TSTARTROBOT = 20;
 int PRIORITY_TGESTIONBATTERIE = 15;
 int PRIORITY_TGESTIONWATCHDOG = 8;
+int PRIORITY_TREINIT = 7;
 
 RT_MUTEX mutex_robotStarted;
 RT_MUTEX mutex_move;
 RT_MUTEX mutex_cpt_err;
 RT_MUTEX mutex_WD;
+RT_MUTEX mutex_Camera;
 
 // Déclaration des sémaphores
 RT_SEM sem_barrier;
@@ -49,6 +52,7 @@ RT_SEM sem_openComRobot;
 RT_SEM sem_serverOk;
 RT_SEM sem_startRobot;
 RT_SEM sem_withWD;
+RT_SEM sem_rst;
 
 // Déclaration des files de message
 RT_QUEUE q_messageToMon;
@@ -60,6 +64,7 @@ int etatCommMoniteur = 1;
 int robotStarted = 0;
 int cpt_err = 0;
 int WD = 0;
+int Camera = 0;
 char move = DMB_STOP_MOVE;
 
 /**
@@ -83,7 +88,7 @@ void startTasks(void);
  */
 void deleteTasks(void);
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv) {extern RT_MUTEX mutex_cpt_err;
 
     int err;
     //Lock the memory to avoid memory swapping for this program
@@ -121,6 +126,10 @@ void initStruct(void) {
         printf("Error mutex create: %s\n",strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_mutex_create(&mutex_Camera,NULL)) {
+        printf("Error mutex create: %s\n",strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 
     /* Creation du semaphore */
     if (err = rt_sem_create(&sem_barrier, NULL, 0, S_FIFO)) {
@@ -140,6 +149,10 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
     if (err = rt_sem_create(&sem_withWD,NULL,0,S_FIFO)) {
+        printf("Error semaphore create: %s\n",strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_sem_create(&sem_rst,NULL,0,S_FIFO)) {
         printf("Error semaphore create: %s\n",strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -174,6 +187,10 @@ void initStruct(void) {
         exit(EXIT_FAILURE);
     }
     if (err = rt_task_create(&th_gestionWatchDog, "th_gestionWatchDog", 0, PRIORITY_TGESTIONWATCHDOG, 0)) {
+        printf("Error task create: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
+    if (err = rt_task_create(&th_ReInit, "th_ReInit", 0, PRIORITY_TREINIT, 0)) {
         printf("Error task create: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
@@ -222,6 +239,10 @@ void startTasks() {
         printf("Error task start: %s\n", strerror(-err));
         exit(EXIT_FAILURE);
     }
+    if (err = rt_task_start(&th_ReInit, &f_ReInit, NULL)) {
+        printf("Error task start: %s\n", strerror(-err));
+        exit(EXIT_FAILURE);
+    }
 }
 
 void deleteTasks() {
@@ -230,4 +251,5 @@ void deleteTasks() {
     rt_task_delete(&th_move);
     rt_task_delete(&th_gestionBatterie);
     rt_task_delete(&th_gestionWatchDog);
+    rt_task_delete(&th_ReInit);
 }
