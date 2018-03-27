@@ -415,3 +415,27 @@ printf("%s: rst on, stop nodejs and server\n", info.name);
 
 	}
 }
+
+void f_DetecterArene(void *arg){
+
+	while (1) {
+		rt_mutex_acquire(&mutex_rechercheArene, TM_INFINITE);
+		if (rechercheArene = 1) {
+			get_image();
+			
+			rt_mutex_acquire(&mutex_Arena, TM_INFINITE);
+			arena = detect_arena(image);
+			
+			if (arena = NULL) {
+				printf("%s: Arene non trouvée\n");
+			} else {
+				draw_arena(image,arena);
+				jpgimage = compress_image(image);
+				//message tomon
+			}
+			rechercheArene = 0;
+			rt_mutex_release(&mutex_Arena);
+			rt_mutex_release(&mutex_rechercheArene);
+		}
+	}
+}
