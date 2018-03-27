@@ -403,6 +403,8 @@ printf("%s: rst on, stop nodejs and server\n", info.name);
 		kill_nodejs();
 		close_server();
 
+		printf(«%s: Nodejs is lost \n », info.name);
+
 		rt_mutex_acquire(&mutex_RobotStarted, TM_INFINITE);
 		RobotStarted = 0;
 		rt_mutex_release(&mutex_RobotStarted);
