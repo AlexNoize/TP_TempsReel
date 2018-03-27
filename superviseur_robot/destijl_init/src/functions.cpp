@@ -217,9 +217,32 @@ void f_move(void *arg) {
 #endif
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
+            
+            int err;
+            
             rt_mutex_acquire(&mutex_move, TM_INFINITE);
-            send_command_to_robot(move);
+            err = send_command_to_robot(move);
             rt_mutex_release(&mutex_move);
+            
+            rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
+            if (err >= 0 ){ // Pas d'erreur 
+                
+                cpt_err = 0;
+            }
+            else {
+                cpt_err++;
+                #ifdef _WITH_TRACE_
+                printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
+                #endif
+                if (cpt_err == 3) {
+                    robotStarted = 0;
+                    MessageToMon msg;
+                    set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
+                    write_in_queue(&q_messageToMon,msg);
+                    cpt_err = 0;
+                }
+            }
+            rt_mutex_release(&mutex_cpt_err);
 #ifdef _WITH_TRACE_
             printf("%s: the movement %c was sent\n", info.name, move);
 #endif            
@@ -267,7 +290,9 @@ void f_gestionBatterie(void *arg) {
             }
             else {
                 cpt_err++;
-                //printf("Cpt erreur = %d\n",cpt_err);
+                #ifdef _WITH_TRACE_
+                printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
+                #endif
                 if (cpt_err == 3) {
                     robotStarted = 0;
                     MessageToMon msg;
@@ -298,6 +323,7 @@ void f_gestionWatchDog(void *arg) { //Pas faite
     printf("%s: start period\n", info.name);
 #endif
     rt_task_set_periodic(NULL, TM_NOW, 1000000000);
+    rt_sem_p(&sem_withWD,TM_INFINITE);
     
     while (1) {
 #ifdef _WITH_TRACE_
@@ -311,22 +337,19 @@ void f_gestionWatchDog(void *arg) { //Pas faite
         rt_mutex_acquire(&mutex_robotStarted, TM_INFINITE);
         if (robotStarted) {
             
-            int bat;
-            bat = send_command_to_robot(DMB_GET_VBAT);
+            int err;
+            err = send_command_to_robot(DMB_RELOAD_WD);
             
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
-            if (bat >= 0 ){ //bat = (DMB_BAT_LOW||DMB_BAT_MED||DMB_BAT_HIGH)
-                MessageToMon msg;
-                // bat = 0; On teste l'affichage en forçant.
-                bat += 48;
-                set_msgToMon_header(&msg,HEADER_STM_BAT);
-                set_msgToMon_data(&msg,&bat);
-                write_in_queue(&q_messageToMon, msg);
+            if (err >= 0 ){ // Pas d'erreur 
+                
                 cpt_err = 0;
             }
             else {
                 cpt_err++;
-                //printf("Cpt erreur = %d\n",cpt_err);
+                #ifdef _WITH_TRACE_
+                printf("%s: Cpt erreur = %d\n",info.name,cpt_err);
+                #endif
                 if (cpt_err == 3) {
                     robotStarted = 0;
                     MessageToMon msg;
@@ -337,7 +360,7 @@ void f_gestionWatchDog(void *arg) { //Pas faite
             }
             rt_mutex_release(&mutex_cpt_err);
 #ifdef _WITH_TRACE_
-            printf("%s: the battery level %c was sent\n", info.name, bat);
+            printf("%s: the watchdog reload order was sent\n", info.name);
 #endif            
         }
         rt_mutex_release(&mutex_robotStarted);
