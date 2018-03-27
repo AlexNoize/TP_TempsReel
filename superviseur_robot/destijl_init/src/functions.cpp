@@ -242,6 +242,10 @@ void f_move(void *arg) {
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
                     close_communication_robot;
+                    set_msgToMon_header(&msg,HEADER_STM_MES);
+                    char* Msg_Lost_Co = "Perte de connexion avec le robot\n";
+                    set_msgToMon_data(&msg,Msg_Lost_Co);
+                    write_in_queue(&q_messageToMon,msg);
                     cpt_err = 0;
                 }
             }
@@ -282,7 +286,7 @@ void f_gestionBatterie(void *arg) {
             rt_mutex_acquire(&mutex_cpt_err,TM_INFINITE);
             if (bat >= 0 ){ //bat = (DMB_BAT_LOW||DMB_BAT_MED||DMB_BAT_HIGH)
                 MessageToMon msg;
-                // bat = 0; On teste l'affichage en forçant.
+                // bat = 2; // On teste l'affichage en forçant.
                 bat += 48;
                 set_msgToMon_header(&msg,HEADER_STM_BAT);
                 set_msgToMon_data(&msg,&bat);
@@ -303,6 +307,9 @@ void f_gestionBatterie(void *arg) {
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
                     close_communication_robot;
+                    char* Msg_Lost_Co = "Perte de connexion avec le robot\n";
+                    set_msgToMon_data(&msg,Msg_Lost_Co);
+                    write_in_queue(&q_messageToMon,msg);
                     cpt_err = 0;
                 }
             }
@@ -360,6 +367,9 @@ void f_gestionWatchDog(void *arg) { //Pas faite
                     set_msgToMon_header(&msg,HEADER_STM_LOST_DMB);
                     write_in_queue(&q_messageToMon,msg);
                     close_communication_robot;
+                    char* Msg_Lost_Co = "Perte de connexion avec le robot\n";
+                    set_msgToMon_data(&msg,Msg_Lost_Co);
+                    write_in_queue(&q_messageToMon,msg);
                     cpt_err = 0;
                 }
             }
